@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e3a8a">
   <style>
-    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; padding: 16px; color: #1f2937; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f8; margin: 0; padding: 16px; color: #1f2937; }
     .card { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     h2 { margin-top: 0; color: #1e3a8a; font-size: 1.4rem; }
     label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: 0.95rem; }
@@ -26,6 +26,9 @@
   <form id="rapportoForm">
     <label>Data</label>
     <input type="date" id="dataLavoro" required>
+
+    <label>Codice Azienda (PIN)</label>
+    <input type="password" id="pin" inputmode="numeric" placeholder="Inserisci il PIN" required>
 
     <label>Nome Operaio</label>
     <input type="text" id="operaio" placeholder="Es. Marco Rossi" required>
@@ -56,13 +59,15 @@
 </div>
 
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9iJOFduFjTy6GwH2xv11Ytm4DhL08sI_v8qKkLq6_Mh_WVNUkg32Ne28mJ3FJlfdV/exec
-";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9iJOFduFjTy6GwH2xv11Ytm4DhL08sI_v8qKkLq6_Mh_WVNUkg32Ne28mJ3FJlfdV/exec";
 
-  // Preenche data de hoje e lembra nome do operário
+  // Preenche data de hoje e lembra nome e PIN do operário
   document.getElementById('dataLavoro').valueAsDate = new Date();
   if (localStorage.getItem('nomeOperaio')) {
     document.getElementById('operaio').value = localStorage.getItem('nomeOperaio');
+  }
+  if (localStorage.getItem('pinAzienda')) {
+    document.getElementById('pin').value = localStorage.getItem('pinAzienda');
   }
 
   // Registra Service Worker
@@ -70,7 +75,7 @@
     navigator.serviceWorker.register('./sw.js');
   }
 
-  // Converte e redimensiona foto para não pesar no 4G
+  // Redimensiona a foto para envio rápido no 4G
   function processaFoto(file) {
     return new Promise((resolve) => {
       if (!file) return resolve(null);
@@ -92,6 +97,29 @@
     });
   }
 
+  // Tenta reenviar relatórios salvos offline quando voltar a ter sinal
+  async function sincronizzaFilaOffline() {
+    const fila = JSON.parse(localStorage.getItem('filaOffline') || '[]');
+    if (fila.length === 0 || !navigator.onLine) return;
+
+    const pendenti = [];
+    for (const item of fila) {
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          mode: 'no-cors',
+          body: JSON.stringify(item)
+        });
+      } catch (e) {
+        pendenti.push(item);
+      }
+    }
+    localStorage.setItem('filaOffline', JSON.stringify(pendenti));
+  }
+
+  window.addEventListener('online', sincronizzaFilaOffline);
+  sincronizzaFilaOffline();
+
   document.getElementById('rapportoForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btnInvia');
@@ -100,12 +128,15 @@
     btn.innerText = "Invio in corso...";
 
     const operaio = document.getElementById('operaio').value;
-    localStorage.setItem('nomeOperaio', operaio); // Salva nome para os próximos dias
+    const pin = document.getElementById('pin').value;
+    localStorage.setItem('nomeOperaio', operaio);
+    localStorage.setItem('pinAzienda', pin);
 
     const fileInput = document.getElementById('foto').files[0];
     const fotoData = await processaFoto(fileInput);
 
     const payload = {
+      pin: pin,
       dataLavoro: document.getElementById('dataLavoro').value,
       operaio: operaio,
       cantiere: document.getElementById('cantiere').value,
@@ -129,12 +160,11 @@
       document.getElementById('materiali').value = "";
       document.getElementById('foto').value = "";
     } catch (err) {
-      // Salva localmente se estiver sem sinal
       const fila = JSON.parse(localStorage.getItem('filaOffline') || '[]');
       fila.push(payload);
       localStorage.setItem('filaOffline', JSON.stringify(fila));
       msg.className = "status offline";
-      msg.innerText = "Nessuna connessione. Salvato sul telefono!";
+      msg.innerText = "Nessuna connessione. Salvato sul telefono e verrà inviato appena torna il segnale!";
       msg.style.display = "block";
     } finally {
       btn.disabled = false;
