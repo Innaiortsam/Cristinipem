@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapporto Giornaliero</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a8a">
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f4f6f8; margin: 0; padding: 16px; color: #1f2937; }
+    .card { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    h2 { margin-top: 0; color: #1e3a8a; font-size: 1.4rem; }
+    label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: 0.95rem; }
+    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
+    button { width: 100%; padding: 15px; background: #1e3a8a; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    button:disabled { background: #9ca3af; }
+    .status { margin-top: 15px; padding: 12px; border-radius: 8px; display: none; text-align: center; font-weight: 600; }
+    .ok { background: #dcfce7; color: #166534; }
+    .offline { background: #fef3c7; color: #92400e; }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h2>Rapporto Giornaliero</h2>
+  <form id="rapportoForm">
+    <label>Data</label>
+    <input type="date" id="dataLavoro" required>
+
+    <label>Nome Operaio</label>
+    <input type="text" id="operaio" placeholder="Es. Marco Rossi" required>
+
+    <label>Cantiere</label>
+    <select id="cantiere" required>
+      <option value="">Seleziona cantiere...</option>
+      <option value="Cantiere Isola del Liri">Cantiere Isola del Liri</option>
+      <option value="Cantiere Sora">Cantiere Sora</option>
+      <option value="Cantiere Frosinone">Cantiere Frosinone</option>
+    </select>
+
+    <label>Ore Lavorate</label>
+    <input type="number" id="ore" step="0.5" value="8" required>
+
+    <label>Attività Svolte</label>
+    <textarea id="attivita" rows="3" placeholder="Descrivi il lavoro fatto oggi..." required></textarea>
+
+    <label>Materiali Utilizzati / Note</label>
+    <textarea id="materiali" rows="2" placeholder="Opzionale"></textarea>
+
+    <label>Foto Cantiere (Opzionale)</label>
+    <input type="file" id="foto" accept="image/*" capture="environment">
+
+    <button type="submit" id="btnInvia">Invia Rapporto</button>
+  </form>
+  <div id="msg" class="status"></div>
+</div>
+
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9iJOFduFjTy6GwH2xv11Ytm4DhL08sI_v8qKkLq6_Mh_WVNUkg32Ne28mJ3FJlfdV/exec
+";
+
+  // Preenche data de hoje e lembra nome do operário
+  document.getElementById('dataLavoro').valueAsDate = new Date();
+  if (localStorage.getItem('nomeOperaio')) {
+    document.getElementById('operaio').value = localStorage.getItem('nomeOperaio');
+  }
+
+  // Registra Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+
+  // Converte e redimensiona foto para não pesar no 4G
+  function processaFoto(file) {
+    return new Promise((resolve) => {
+      if (!file) return resolve(null);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const maxW = 1024;
+          const scale = maxW / img.width;
+          canvas.width = img.width > maxW ? maxW : img.width;
+          canvas.height = img.width > maxW ? img.height * scale : img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve({ base64: canvas.toDataURL('image/jpeg', 0.7), nome: file.name });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('rapportoForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('btnInvia');
+    const msg = document.getElementById('msg');
+    btn.disabled = true;
+    btn.innerText = "Invio in corso...";
+
+    const operaio = document.getElementById('operaio').value;
+    localStorage.setItem('nomeOperaio', operaio); // Salva nome para os próximos dias
+
+    const fileInput = document.getElementById('foto').files[0];
+    const fotoData = await processaFoto(fileInput);
+
+    const payload = {
+      dataLavoro: document.getElementById('dataLavoro').value,
+      operaio: operaio,
+      cantiere: document.getElementById('cantiere').value,
+      ore: document.getElementById('ore').value,
+      attivita: document.getElementById('attivita').value,
+      materiali: document.getElementById('materiali').value,
+      fotoBase64: fotoData ? fotoData.base64 : null,
+      fotoNome: fotoData ? fotoData.nome : null
+    };
+
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify(payload)
+      });
+      msg.className = "status ok";
+      msg.innerText = "Rapporto inviato con successo!";
+      msg.style.display = "block";
+      document.getElementById('attivita').value = "";
+      document.getElementById('materiali').value = "";
+      document.getElementById('foto').value = "";
+    } catch (err) {
+      // Salva localmente se estiver sem sinal
+      const fila = JSON.parse(localStorage.getItem('filaOffline') || '[]');
+      fila.push(payload);
+      localStorage.setItem('filaOffline', JSON.stringify(fila));
+      msg.className = "status offline";
+      msg.innerText = "Nessuna connessione. Salvato sul telefono!";
+      msg.style.display = "block";
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "Invia Rapporto";
+    }
+  });
+</script>
+</body>
+</html>
