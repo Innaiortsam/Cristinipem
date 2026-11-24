@@ -1,9 +1,9 @@
 {
-  "name": "Rapporto Giornaliero Cantiere",
-  "short_name": "Rapporto",
+  "name": "Cristini P&M - App Cantiere",
+  "short_name": "Cristini App",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f4f6f8",
+  "background_color": "#f1f5f9",
   "theme_color": "#1e3a8a",
   "icons": [
     {

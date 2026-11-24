@@ -2,94 +2,253 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rapporto Giornaliero</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Cristini P&amp;M · App Cantiere</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e3a8a">
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; background: #f4f6f8; margin: 0; padding: 16px; color: #1f2937; }
-    .card { max-width: 500px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-    h2 { margin-top: 0; color: #1e3a8a; font-size: 1.4rem; }
-    label { display: block; font-weight: 600; margin: 14px 0 6px; font-size: 0.95rem; }
-    input, select, textarea { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; box-sizing: border-box; }
-    button { width: 100%; padding: 15px; background: #1e3a8a; color: white; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; margin-top: 20px; cursor: pointer; }
-    button:disabled { background: #9ca3af; }
-    .status { margin-top: 15px; padding: 12px; border-radius: 8px; display: none; text-align: center; font-weight: 600; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f1f5f9; margin: 0; padding: 12px 12px 84px; color: #1e293b; }
+    .card { max-width: 520px; margin: 0 auto 14px; background: #fff; padding: 18px; border-radius: 14px; box-shadow: 0 2px 10px rgba(15,23,42,0.07); }
+    h2 { margin: 0 0 14px; color: #1e3a8a; font-size: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+    label { display: block; font-weight: 600; margin: 12px 0 5px; font-size: 0.9rem; color: #334155; }
+    input, select, textarea { width: 100%; padding: 11px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 1rem; background: #fff; }
+    .row { display: flex; gap: 10px; }
+    .row > div { flex: 1; }
+    button { width: 100%; padding: 14px; background: #1e3a8a; color: #fff; border: none; border-radius: 10px; font-size: 1rem; font-weight: 700; margin-top: 16px; cursor: pointer; }
+    button:disabled { background: #94a3b8; }
+    .btn-sm { width: auto; padding: 6px 12px; font-size: 0.8rem; margin: 0; background: #e2e8f0; color: #334155; border-radius: 6px; }
+    .btn-sec { background: #475569; margin-top: 8px; }
+
+    /* Mini Calendario */
+    .date-trigger { padding: 11px; border: 1.5px solid #1e3a8a; background: #eff6ff; color: #1e3a8a; border-radius: 8px; font-weight: 700; text-align: center; cursor: pointer; }
+    .calendar-box { display: none; border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; margin-top: 8px; background: #fff; }
+    .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 700; }
+    .cal-header button { width: auto; margin: 0; padding: 5px 11px; font-size: 0.85rem; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+    .cal-day-name { font-size: 0.72rem; font-weight: 700; color: #64748b; }
+    .cal-day { padding: 7px 0; border-radius: 6px; font-size: 0.88rem; cursor: pointer; font-weight: 600; }
+    .cal-day.enviado { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+    .cal-day.pendente { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .cal-day.futuro { color: #94a3b8; background: #f8fafc; }
+    .cal-day.selected { outline: 2px solid #1e3a8a; }
+
+    /* Trasferta Checkboxes */
+    .chk-group { display: flex; gap: 10px; flex-wrap: wrap; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px; border-radius: 8px; margin-top: 6px; }
+    .chk-item { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; font-weight: 600; margin: 0; }
+    .chk-item input { width: 18px; height: 18px; margin: 0; }
+
+    /* Bottom Nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid #cbd5e1; display: none; justify-content: space-around; padding: 6px 2px; z-index: 99; }
+    .nav-btn { background: none; border: none; color: #64748b; font-size: 0.7rem; font-weight: 700; margin: 0; padding: 4px 6px; width: auto; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+    .nav-btn.active { color: #1e3a8a; }
+    .badge { position: absolute; top: 0; right: 2px; background: #dc2626; color: #fff; font-size: 0.65rem; padding: 1px 5px; border-radius: 10px; display: none; }
+
+    .status { margin-top: 12px; padding: 10px; border-radius: 8px; display: none; text-align: center; font-weight: 600; font-size: 0.9rem; }
     .ok { background: #dcfce7; color: #166534; }
+    .err { background: #fee2e2; color: #991b1b; }
     .offline { background: #fef3c7; color: #92400e; }
+    .item-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin-top: 10px; background: #f8fafc; font-size: 0.88rem; }
+    .tab-view { display: none; }
+    .tab-view.active { display: block; }
   </style>
 </head>
 <body>
 
-<div class="card">
-  <h2>Rapporto Giornaliero</h2>
-  <form id="rapportoForm">
-    <label>Data</label>
-    <input type="date" id="dataLavoro" required>
-
-    <label>Codice Azienda (PIN)</label>
-    <input type="password" id="pin" inputmode="numeric" placeholder="Inserisci il PIN" required>
-
-    <label>Nome Operaio</label>
-    <input type="text" id="operaio" placeholder="Es. Marco Rossi" required>
-
-    <label>Cantiere</label>
-    <select id="cantiere" required>
-      <option value="">Seleziona cantiere...</option>
-      <option value="Cantiere Isola del Liri">Cantiere Isola del Liri</option>
-      <option value="Cantiere Sora">Cantiere Sora</option>
-      <option value="Cantiere Frosinone">Cantiere Frosinone</option>
-    </select>
-
-    <label>Ore Lavorate</label>
-    <input type="number" id="ore" step="0.5" value="8" required>
-
-    <label>Attività Svolte</label>
-    <textarea id="attivita" rows="3" placeholder="Descrivi il lavoro fatto oggi..." required></textarea>
-
-    <label>Materiali Utilizzati / Note</label>
-    <textarea id="materiali" rows="2" placeholder="Opzionale"></textarea>
-
-    <label>Foto Cantiere (Opzionale)</label>
-    <input type="file" id="foto" accept="image/*" capture="environment">
-
-    <button type="submit" id="btnInvia">Invia Rapporto</button>
-  </form>
-  <div id="msg" class="status"></div>
+<!-- LOGIN -->
+<div class="card" id="loginCard">
+  <h2>Cristini P&amp;M · Accesso</h2>
+  <label>Seleziona il tuo Nome</label>
+  <select id="loginOperaio"><option value="">Caricamento...</option></select>
+  <label>PIN (4 cifre)</label>
+  <input type="password" id="loginPin" inputmode="numeric" maxlength="4" placeholder="****">
+  <button type="button" id="btnLogin">Entra</button>
+  <div id="loginMsg" class="status err"></div>
 </div>
 
+<!-- APP CONTAINER -->
+<div id="appContainer" style="display:none;">
+
+  <!-- TAB 1: RAPPORTO GIORNALIERO -->
+  <div id="tab-rapporto" class="tab-view active">
+    <div class="card">
+      <h2>
+        <span>📝 Rapporto</span>
+        <button type="button" class="btn-sm" id="btnLogout">Esci</button>
+      </h2>
+      <form id="rapportoForm">
+        <input type="text" id="operaioNome" readonly style="background:#f1f5f9; font-weight:700; margin-bottom:8px;">
+        <div class="date-trigger" id="dateDisplay"></div>
+        <input type="hidden" id="dataLavoro">
+
+        <div class="calendar-box" id="calendarBox">
+          <div class="cal-header">
+            <button type="button" id="prevMonth">&lt;</button>
+            <span id="calMonthYear"></span>
+            <button type="button" id="nextMonth">&gt;</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+        </div>
+
+        <label>Cantiere</label>
+        <select id="cantiere" required><option value="">Seleziona cantiere...</option></select>
+
+        <label>Trasferta (Seleziona se applicabile)</label>
+        <div class="chk-group">
+          <label class="chk-item"><input type="checkbox" id="chkGiornaliera"> Giornaliera</label>
+          <label class="chk-item"><input type="checkbox" id="chkAndata"> Andata</label>
+          <label class="chk-item"><input type="checkbox" id="chkRitorno"> Ritorno</label>
+        </div>
+
+        <label>Settore</label>
+        <select id="settore" required><option value="">Seleziona settore...</option></select>
+
+        <label>Veicolo Utilizzato</label>
+        <select id="veicolo" required><option value="">Seleziona veicolo...</option></select>
+        <input type="text" id="veicoloAltro" placeholder="Scrivi modello e targa del veicolo..." style="display:none; margin-top:8px;">
+
+        <div class="row">
+          <div><label>Ora Inizio</label><input type="time" id="inizio" value="07:00" required></div>
+          <div><label>Ora Fine</label><input type="time" id="uscita" value="19:00" required></div>
+        </div>
+
+        <label>Rapporto (Lavori eseguiti oggi)</label>
+        <textarea id="rapporto" rows="3" placeholder="Descrivi cosa è stato realizzato oggi..." required></textarea>
+
+        <button type="submit" id="btnInvia">Invia Rapporto</button>
+      </form>
+      <div id="msgRapporto" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2><span>💾 Salvati sul Telefono</span><button type="button" class="btn-sm" onclick="esportaCSV()">Scarica CSV</button></h2>
+      <div id="storicoLocale"></div>
+    </div>
+  </div>
+
+  <!-- TAB 2: COMPITI E NOTIFICHE -->
+  <div id="tab-compiti" class="tab-view">
+    <div class="card">
+      <h2><span>📋 Compiti &amp; Avvisi</span><button type="button" class="btn-sm" onclick="attivaNotifiche()">🔔 Attiva</button></h2>
+      <div id="listaCompiti">Nessun compito assegnato.</div>
+      <h2 style="margin-top:18px;">📩 Risposte Assenze</h2>
+      <div id="listaRisposteAssenze">Nessuna risposta recente.</div>
+    </div>
+  </div>
+
+  <!-- TAB 3: DDT E FOTO -->
+  <div id="tab-ddt" class="tab-view">
+    <div class="card">
+      <h2>📸 Invia DDT / Foto Cantiere</h2>
+      <form id="ddtForm">
+        <label>Data Documento</label>
+        <input type="date" id="ddtData" required>
+        <label>Cantiere</label>
+        <select id="ddtCantiere" required></select>
+        <label>Tipo Documento</label>
+        <select id="ddtTipo">
+          <option value="DDT / Bolla">DDT / Bolla</option>
+          <option value="Avanzamento Lavori">Avanzamento Lavori</option>
+          <option value="Problema / Urgenza">Problema / Urgenza</option>
+        </select>
+        <label>Descrizione / Note</label>
+        <textarea id="ddtNote" rows="2" placeholder="Es. Consegna materiale idraulico..." required></textarea>
+        <label>Allega Foto</label>
+        <input type="file" id="ddtFoto" accept="image/*" capture="environment" required>
+        <button type="submit" id="btnDdt">Invia DDT / Foto</button>
+      </form>
+      <div id="msgDdt" class="status"></div>
+    </div>
+  </div>
+
+  <!-- TAB 4: FERIE E MALATTIA -->
+  <div id="tab-assenze" class="tab-view">
+    <div class="card">
+      <h2>🏖️ Richiesta Ferie / Malattia</h2>
+      <form id="assenzaForm">
+        <label>Tipo Richiesta</label>
+        <select id="assTipo">
+          <option value="Ferie">Ferie</option>
+          <option value="Permesso">Permesso</option>
+          <option value="Malattia">Malattia</option>
+        </select>
+        <div class="row">
+          <div><label>Dal</label><input type="date" id="assInizio" required></div>
+          <div><label>Al</label><input type="date" id="assFine" required></div>
+        </div>
+        <label>Note / Numero Protocollo</label>
+        <textarea id="assNote" rows="2" placeholder="Motivo o codice certificato medico..."></textarea>
+        <label>Foto Certificato (Opzionale)</label>
+        <input type="file" id="assFoto" accept="image/*">
+        <button type="submit" id="btnAss">Invia Richiesta</button>
+      </form>
+      <div id="msgAss" class="status"></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: CAPO CANTIERE -->
+  <div id="tab-capo" class="tab-view">
+    <div class="card">
+      <h2>👷 Validazione Capo Cantiere</h2>
+      <div id="listaValidazione">Nessun rapporto da validare oggi.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- MENU INFERIORE -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="nav-btn active" onclick="switchTab('rapporto', this)"><span>📝</span>Rapporto</button>
+  <button class="nav-btn" onclick="switchTab('compiti', this)"><span>📋</span>Compiti<span class="badge" id="badgeCompiti">0</span></button>
+  <button class="nav-btn" onclick="switchTab('ddt', this)"><span>📸</span>DDT</button>
+  <button class="nav-btn" onclick="switchTab('assenze', this)"><span>🏖️</span>Assenze</button>
+  <button class="nav-btn" id="navCapo" style="display:none;" onclick="switchTab('capo', this)"><span>👷</span>Capo</button>
+</nav>
+
 <script>
-  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycby9iJOFduFjTy6GwH2xv11Ytm4DhL08sI_v8qKkLq6_Mh_WVNUkg32Ne28mJ3FJlfdV/exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwxr1ZivVYCFzTaOZ-6zuGYasel5dmjlh-4LSSC7d6o7ObQPnvZLcMoKjJlEJNnOIBd/exec";
 
-  // Preenche data de hoje e lembra nome e PIN do operário
-  document.getElementById('dataLavoro').valueAsDate = new Date();
-  if (localStorage.getItem('nomeOperaio')) {
-    document.getElementById('operaio').value = localStorage.getItem('nomeOperaio');
+  let appData = { operai: [], cantieri: [], settori: [], veicoli: [] };
+  let dateInviate = [];
+  let selectedDate = new Date();
+  let viewDate = new Date();
+
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js');
+
+  function formatISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
-  if (localStorage.getItem('pinAzienda')) {
-    document.getElementById('pin').value = localStorage.getItem('pinAzienda');
+  function formatIT(d) {
+    return d.toLocaleDateString('it-IT', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
-  // Registra Service Worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js');
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
   }
 
-  // Redimensiona a foto para envio rápido no 4G
-  function processaFoto(file) {
-    return new Promise((resolve) => {
+  function attivaNotifiche() {
+    if ('Notification' in window) {
+      Notification.requestPermission().then(p => alert(p === 'granted' ? 'Notifiche attivate!' : 'Notifiche bloccate dal browser.'));
+    }
+  }
+
+  function compressImage(file) {
+    return new Promise(resolve => {
       if (!file) return resolve(null);
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = e => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
           const maxW = 1024;
-          const scale = maxW / img.width;
-          canvas.width = img.width > maxW ? maxW : img.width;
-          canvas.height = img.width > maxW ? img.height * scale : img.height;
+          const scale = img.width > maxW ? maxW / img.width : 1;
+          canvas.width = img.width * scale;
+          canvas.height = img.height * scale;
           canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-          resolve({ base64: canvas.toDataURL('image/jpeg', 0.7), nome: file.name });
+          resolve({ base64: canvas.toDataURL('image/jpeg', 0.72), nome: file.name });
         };
         img.src = e.target.result;
       };
@@ -97,80 +256,315 @@
     });
   }
 
-  // Tenta reenviar relatórios salvos offline quando voltar a ter sinal
-  async function sincronizzaFilaOffline() {
-    const fila = JSON.parse(localStorage.getItem('filaOffline') || '[]');
-    if (fila.length === 0 || !navigator.onLine) return;
-
-    const pendenti = [];
-    for (const item of fila) {
-      try {
-        await fetch(SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: JSON.stringify(item)
-        });
-      } catch (e) {
-        pendenti.push(item);
-      }
+  async function initApp() {
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=init`);
+      appData = await res.json();
+      localStorage.setItem('cristiniInitV10', JSON.stringify(appData));
+    } catch (e) {
+      appData = JSON.parse(localStorage.getItem('cristiniInitV10') || '{"operai":[],"cantieri":[],"settori":[],"veicoli":[]}');
     }
-    localStorage.setItem('filaOffline', JSON.stringify(pendenti));
+
+    const selOp = document.getElementById('loginOperaio');
+    selOp.innerHTML = '<option value="">Seleziona il tuo nome...</option>';
+    appData.operai.forEach(o => selOp.innerHTML += `<option value="${o.nome}">${o.nome}</option>`);
+
+    const cantOpts = '<option value="">Seleziona cantiere...</option>' + appData.cantieri.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+    document.getElementById('cantiere').innerHTML = cantOpts;
+    document.getElementById('ddtCantiere').innerHTML = cantOpts;
+
+    document.getElementById('settore').innerHTML = '<option value="">Seleziona settore...</option>' + appData.settori.map(s => `<option value="${s}">${s}</option>`).join('');
+
+    const veiSel = document.getElementById('veicolo');
+    veiSel.innerHTML = '<option value="">Seleziona veicolo...</option><option value="Nessun veicolo / Passeggero">Nessun veicolo / Passeggero</option>'
+      + appData.veicoli.map(v => `<option value="${v}">${v}</option>`).join('')
+      + '<option value="Altro">Altro (Specificare)</option>';
+
+    const saved = JSON.parse(localStorage.getItem('cristiniUserV10'));
+    if (saved) enterApp(saved);
   }
 
-  window.addEventListener('online', sincronizzaFilaOffline);
-  sincronizzaFilaOffline();
+  document.getElementById('btnLogin').onclick = () => {
+    const nome = document.getElementById('loginOperaio').value;
+    const pin = document.getElementById('loginPin').value;
+    const user = appData.operai.find(o => o.nome === nome && o.pin === pin);
+    if (user) {
+      localStorage.setItem('cristiniUserV10', JSON.stringify(user));
+      enterApp(user);
+    } else {
+      const m = document.getElementById('loginMsg');
+      m.innerText = 'Nome o PIN errati!';
+      m.style.display = 'block';
+    }
+  };
 
-  document.getElementById('rapportoForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = document.getElementById('btnInvia');
-    const msg = document.getElementById('msg');
-    btn.disabled = true;
-    btn.innerText = "Invio in corso...";
+  document.getElementById('btnLogout').onclick = () => {
+    localStorage.removeItem('cristiniUserV10');
+    location.reload();
+  };
 
-    const operaio = document.getElementById('operaio').value;
-    const pin = document.getElementById('pin').value;
-    localStorage.setItem('nomeOperaio', operaio);
-    localStorage.setItem('pinAzienda', pin);
+  async function enterApp(user) {
+    document.getElementById('loginCard').style.display = 'none';
+    document.getElementById('appContainer').style.display = 'block';
+    document.getElementById('bottomNav').style.display = 'flex';
+    document.getElementById('operaioNome').value = user.nome;
+    document.getElementById('ddtData').valueAsDate = new Date();
+    document.getElementById('assInizio').valueAsDate = new Date();
+    document.getElementById('assFine').valueAsDate = new Date();
+    if (user.ruolo === 'Capo Cantiere') document.getElementById('navCapo').style.display = 'flex';
 
-    const fileInput = document.getElementById('foto').files[0];
-    const fotoData = await processaFoto(fileInput);
-
-    const payload = {
-      pin: pin,
-      dataLavoro: document.getElementById('dataLavoro').value,
-      operaio: operaio,
-      cantiere: document.getElementById('cantiere').value,
-      ore: document.getElementById('ore').value,
-      attivita: document.getElementById('attivita').value,
-      materiali: document.getElementById('materiali').value,
-      fotoBase64: fotoData ? fotoData.base64 : null,
-      fotoNome: fotoData ? fotoData.nome : null
-    };
+    setDate(new Date());
+    renderStoricoLocale();
+    syncOfflineQueue();
 
     try {
-      await fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body: JSON.stringify(payload)
-      });
-      msg.className = "status ok";
-      msg.innerText = "Rapporto inviato con successo!";
-      msg.style.display = "block";
-      document.getElementById('attivita').value = "";
-      document.getElementById('materiali').value = "";
-      document.getElementById('foto').value = "";
-    } catch (err) {
-      const fila = JSON.parse(localStorage.getItem('filaOffline') || '[]');
-      fila.push(payload);
-      localStorage.setItem('filaOffline', JSON.stringify(fila));
-      msg.className = "status offline";
-      msg.innerText = "Nessuna connessione. Salvato sul telefono e verrà inviato appena torna il segnale!";
-      msg.style.display = "block";
-    } finally {
-      btn.disabled = false;
-      btn.innerText = "Invia Rapporto";
+      const res = await fetch(`${SCRIPT_URL}?action=sync&operaio=${encodeURIComponent(user.nome)}&ruolo=${encodeURIComponent(user.ruolo)}`);
+      const sync = await res.json();
+      dateInviate = sync.dateInviate || [];
+      renderCalendar();
+      renderCompiti(sync.compiti || [], sync.assenze || []);
+      if (user.ruolo === 'Capo Cantiere') renderCapo(sync.rapportiOggi || []);
+    } catch (e) {
+      renderCalendar();
     }
-  });
+  }
+
+  function setDate(d) {
+    selectedDate = d;
+    document.getElementById('dataLavoro').value = formatISO(d);
+    document.getElementById('dateDisplay').innerText = '📅 ' + formatIT(d);
+  }
+
+  document.getElementById('dateDisplay').onclick = () => {
+    const b = document.getElementById('calendarBox');
+    b.style.display = b.style.display === 'block' ? 'none' : 'block';
+    renderCalendar();
+  };
+  document.getElementById('prevMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth()-1); renderCalendar(); };
+  document.getElementById('nextMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth()+1); renderCalendar(); };
+
+  function renderCalendar() {
+    const grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    document.getElementById('calMonthYear').innerText = viewDate.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' }).toUpperCase();
+    ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].forEach(g => grid.innerHTML += `<div class="cal-day-name">${g}</div>`);
+    const y = viewDate.getFullYear(), m = viewDate.getMonth();
+    const first = new Date(y, m, 1).getDay();
+    const offset = first === 0 ? 6 : first - 1;
+    const days = new Date(y, m+1, 0).getDate();
+    const todayISO = formatISO(new Date()), selISO = formatISO(selectedDate);
+    for (let i = 0; i < offset; i++) grid.innerHTML += '<div></div>';
+    for (let d = 1; d <= days; d++) {
+      const cur = new Date(y, m, d), iso = formatISO(cur);
+      let cls = 'cal-day ' + (dateInviate.includes(iso) ? 'enviado' : (iso <= todayISO && cur.getDay() !== 0 ? 'pendente' : 'futuro'));
+      if (iso === selISO) cls += ' selected';
+      const el = document.createElement('div');
+      el.className = cls; el.innerText = d;
+      el.onclick = () => { setDate(cur); document.getElementById('calendarBox').style.display = 'none'; };
+      grid.appendChild(el);
+    }
+  }
+
+  document.getElementById('cantiere').onchange = e => {
+    const c = appData.cantieri.find(x => x.nome === e.target.value);
+    document.getElementById('chkGiornaliera').checked = c && c.tipoTrasferta === 'Giornaliera';
+    document.getElementById('chkAndata').checked = false;
+    document.getElementById('chkRitorno').checked = false;
+  };
+
+  document.getElementById('veicolo').onchange = e => {
+    const alt = document.getElementById('veicoloAltro');
+    alt.style.display = e.target.value === 'Altro' ? 'block' : 'none';
+    alt.required = e.target.value === 'Altro';
+  };
+
+  async function sendPayload(payload, msgElId) {
+    const msg = document.getElementById(msgElId);
+    try {
+      await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(payload) });
+      msg.className = 'status ok';
+      msg.innerText = 'Inviato con successo!';
+      msg.style.display = 'block';
+      return true;
+    } catch (e) {
+      const q = JSON.parse(localStorage.getItem('cristiniQueueV10') || '[]');
+      q.push(payload);
+      localStorage.setItem('cristiniQueueV10', JSON.stringify(q));
+      msg.className = 'status offline';
+      msg.innerText = 'Offline: salvato sul telefono! Verrà inviato appena torna il segnale.';
+      msg.style.display = 'block';
+      return false;
+    }
+  }
+
+  async function syncOfflineQueue() {
+    const q = JSON.parse(localStorage.getItem('cristiniQueueV10') || '[]');
+    if (!q.length || !navigator.onLine) return;
+    const rem = [];
+    for (const item of q) {
+      try { await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(item) }); }
+      catch (e) { rem.push(item); }
+    }
+    localStorage.setItem('cristiniQueueV10', JSON.stringify(rem));
+    renderStoricoLocale();
+  }
+  window.addEventListener('online', syncOfflineQueue);
+
+  document.getElementById('rapportoForm').onsubmit = async e => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('cristiniUserV10'));
+    const g = document.getElementById('chkGiornaliera').checked;
+    const a = document.getElementById('chkAndata').checked;
+    const r = document.getElementById('chkRitorno').checked;
+    let mov = 'Nessuno';
+    if (g) mov = 'Giornaliera';
+    else if (a && r) mov = 'Entrambi';
+    else if (a) mov = 'Andata';
+    else if (r) mov = 'Ritorno';
+
+    const vei = document.getElementById('veicolo').value === 'Altro'
+      ? 'Altro: ' + document.getElementById('veicoloAltro').value
+      : document.getElementById('veicolo').value;
+
+    const payload = {
+      type: 'rapporto',
+      idPwa: user.id + '_' + document.getElementById('dataLavoro').value,
+      pin: user.pin, operaio: user.nome,
+      dataLavoro: document.getElementById('dataLavoro').value,
+      cantiere: document.getElementById('cantiere').value,
+      settore: document.getElementById('settore').value,
+      veicolo: vei, movimentoTrasferta: mov,
+      inizio: document.getElementById('inizio').value,
+      uscita: document.getElementById('uscita').value,
+      rapporto: document.getElementById('rapporto').value
+    };
+
+    const hist = JSON.parse(localStorage.getItem('cristiniHistV10') || '[]');
+    hist.unshift(payload);
+    localStorage.setItem('cristiniHistV10', JSON.stringify(hist.slice(0, 60)));
+
+    await sendPayload(payload, 'msgRapporto');
+    if (!dateInviate.includes(payload.dataLavoro)) dateInviate.push(payload.dataLavoro);
+    renderStoricoLocale();
+    document.getElementById('rapporto').value = '';
+  };
+
+  function renderStoricoLocale() {
+    const hist = JSON.parse(localStorage.getItem('cristiniHistV10') || '[]');
+    const div = document.getElementById('storicoLocale');
+    if (!hist.length) { div.innerHTML = '<small>Nessun rapporto salvato.</small>'; return; }
+    div.innerHTML = hist.slice(0, 8).map((h, i) => `
+      <div class="item-box">
+        <strong>${h.dataLavoro}</strong> · ${h.cantiere} (${h.inizio}-${h.uscita})<br>
+        <small>${h.veicolo} · ${h.movimentoTrasferta}</small><br>
+        <button type="button" class="btn-sm" style="margin-top:6px;" onclick="reinvia(${i})">🔄 Reinvia</button>
+      </div>`).join('');
+  }
+
+  async function reinvia(idx) {
+    const hist = JSON.parse(localStorage.getItem('cristiniHistV10') || '[]');
+    if (hist[idx]) await sendPayload(hist[idx], 'msgRapporto');
+  }
+
+  function esportaCSV() {
+    const hist = JSON.parse(localStorage.getItem('cristiniHistV10') || '[]');
+    const csv = 'Data;Operaio;Cantiere;Settore;Veicolo;Trasferta;Inizio;Fine;Rapporto\n'
+      + hist.map(h => `${h.dataLavoro};${h.operaio};${h.cantiere};${h.settore};${h.veicolo};${h.movimentoTrasferta};${h.inizio};${h.uscita};"${(h.rapporto||'').replace(/"/g,'')}"`).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    a.download = 'backup_rapporti_cristini.csv';
+    a.click();
+  }
+
+  function renderCompiti(compiti, assenze) {
+    let unread = 0;
+    const cDiv = document.getElementById('listaCompiti');
+    cDiv.innerHTML = compiti.length ? compiti.map(c => {
+      if (c.statoLettura !== 'Letto') unread++;
+      return `<div class="item-box"><strong>${c.dataLavoro} · ${c.cantiere}</strong><br>${c.descrizione}<br>
+        ${c.statoLettura !== 'Letto' ? `<button class="btn-sm" style="margin-top:6px;background:#1e3a8a;color:#fff;" onclick="confermaLettura('TASK_E_VALIDAZIONE',${c.row})">✅ Ho letto</button>` : '<small style="color:#166534;">✓ Letto</small>'}</div>`;
+    }).join('') : '<small>Nessun compito assegnato.</small>';
+
+    const aDiv = document.getElementById('listaRisposteAssenze');
+    aDiv.innerHTML = assenze.length ? assenze.map(a => {
+      if (a.stato !== 'In Attesa' && !a.letto) unread++;
+      return `<div class="item-box"><strong>${a.tipo} (${a.inizio} / ${a.fine})</strong><br>Stato: <b>${a.stato}</b> ${a.note ? '· ' + a.note : ''}
+        ${a.stato !== 'In Attesa' && !a.letto ? `<br><button class="btn-sm" style="margin-top:6px;background:#1e3a8a;color:#fff;" onclick="confermaLettura('RICHIESTE_ASSENZE',${a.row})">✅ Conferma</button>` : ''}</div>`;
+    }).join('') : '<small>Nessuna richiesta inviata.</small>';
+
+    const badge = document.getElementById('badgeCompiti');
+    badge.style.display = unread > 0 ? 'inline-block' : 'none';
+    badge.innerText = unread;
+    if (unread > 0 && 'Notification' in window && Notification.permission === 'granted') {
+      new Notification('Cristini P&M', { body: `Hai ${unread} nuovi avvisi o compiti da leggere!` });
+    }
+  }
+
+  async function confermaLettura(sheetName, row) {
+    const user = JSON.parse(localStorage.getItem('cristiniUserV10'));
+    await fetch(SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ type: 'conferma_lettura', pin: user.pin, operaio: user.nome, sheetName, row }) });
+    location.reload();
+  }
+
+  document.getElementById('ddtForm').onsubmit = async e => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('cristiniUserV10'));
+    const foto = await compressImage(document.getElementById('ddtFoto').files[0]);
+    await sendPayload({
+      type: 'ddt', pin: user.pin, operaio: user.nome,
+      dataDoc: document.getElementById('ddtData').value,
+      cantiere: document.getElementById('ddtCantiere').value,
+      tipoDoc: document.getElementById('ddtTipo').value,
+      note: document.getElementById('ddtNote').value,
+      fotoBase64: foto ? foto.base64 : null, fotoNome: foto ? foto.nome : null
+    }, 'msgDdt');
+    document.getElementById('ddtNote').value = '';
+    document.getElementById('ddtFoto').value = '';
+  };
+
+  document.getElementById('assenzaForm').onsubmit = async e => {
+    e.preventDefault();
+    const user = JSON.parse(localStorage.getItem('cristiniUserV10'));
+    const foto = await compressImage(document.getElementById('assFoto').files[0]);
+    await sendPayload({
+      type: 'assenza', pin: user.pin, operaio: user.nome,
+      tipoAssenza: document.getElementById('assTipo').value,
+      dataInizio: document.getElementById('assInizio').value,
+      dataFine: document.getElementById('assFine').value,
+      note: document.getElementById('assNote').value,
+      fotoBase64: foto ? foto.base64 : null, fotoNome: foto ? foto.nome : null
+    }, 'msgAss');
+    document.getElementById('assNote').value = '';
+    document.getElementById('assFoto').value = '';
+  };
+
+  function renderCapo(lista) {
+    const div = document.getElementById('listaValidazione');
+    div.innerHTML = lista.length ? lista.map((r, i) => `
+      <div class="item-box">
+        <strong>${r.dipendente}</strong> · ${r.cantiere} (${r.inizio}-${r.fine})<br>
+        <small>${r.descrizione}</small><br>
+        <input type="text" id="valNote_${i}" placeholder="Note validazione..." style="margin-top:6px;padding:7px;font-size:0.85rem;">
+        <button class="btn-sm" style="margin-top:6px;background:#166534;color:#fff;" onclick='validaLavoro(${JSON.stringify(r)}, ${i}, "Validato")'>✅ Valida</button>
+        <button class="btn-sm" style="margin-top:6px;background:#991b1b;color:#fff;" onclick='validaLavoro(${JSON.stringify(r)}, ${i}, "Da Rifare")'>❌ Da Rifare</button>
+      </div>`).join('') : '<small>Nessun rapporto inviato oggi.</small>';
+  }
+
+  async function validaLavoro(rec, idx, esito) {
+    const user = JSON.parse(localStorage.getItem('cristiniUserV10'));
+    const note = document.getElementById('valNote_' + idx).value;
+    await fetch(SCRIPT_URL, {
+      method: 'POST', mode: 'no-cors',
+      body: JSON.stringify({
+        type: 'validazione', pin: user.pin, operaio: user.nome,
+        dataLavoro: rec.data, dipendenteValidato: rec.dipendente,
+        cantiere: rec.cantiere, descrizione: rec.descrizione, esito, noteValidazione: note
+      })
+    });
+    alert('Validazione salvata: ' + esito);
+  }
+
+  initApp();
 </script>
 </body>
 </html>
