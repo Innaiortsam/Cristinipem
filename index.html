@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Cristini P&amp;M · App Cantiere</title>
   <link rel="manifest" href="manifest.json">
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      try {
+        await OneSignal.init({
+          appId: "0cce1988-9c6d-49d0-92fa-89de27d103bc",
+          serviceWorkerPath: "/Cristinipem/OneSignalSDKWorker.js",
+          serviceWorkerParam: { scope: "/Cristinipem/push/onesignal/" }
+        });
+      } catch (e) {}
+    });
+  </script>
   <meta name="theme-color" content="#1e3a8a">
   <style>
     * { box-sizing: border-box; }
