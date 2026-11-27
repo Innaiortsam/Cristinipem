@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cristini P&M · Console Ufficio (PC)</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    :root {
+      --bg: #f1f5f9; --surface: #ffffff; --primary: #0f172a; --accent: #2563eb;
+      --border: #e2e8f0; --text: #1e293b; --muted: #64748b; --ok: #16a34a; --warn: #d97706;
+    }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); }
+
+    /* Login */
+    #loginScreen {
+      display: flex; align-items: center; justify-content: center; min-height: 100vh;
+      background: linear-gradient(135deg, #0f172a, #1e3a8a);
+    }
+    .login-card {
+      background: #fff; padding: 32px; border-radius: 12px; width: 360px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    }
+    .login-card h2 { margin: 0 0 6px; color: var(--primary); }
+    .login-card p { margin: 0 0 20px; color: var(--muted); font-size: 13px; }
+    .field { margin-bottom: 14px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 5px; color: var(--muted); }
+    .field input, .field select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;
+    }
+    .btn {
+      padding: 10px 16px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;
+      font-size: 13px; display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-dark { background: var(--primary); color: #fff; }
+    .btn-outline { background: #fff; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: #f8fafc; }
+
+    /* App Layout */
+    #appScreen { display: none; min-height: 100vh; flex-direction: column; }
+    header {
+      background: var(--primary); color: #fff; padding: 12px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .brand { font-size: 17px; font-weight: 700; letter-spacing: 0.3px; }
+    .brand span { font-weight: 400; color: #94a3b8; font-size: 13px; margin-left: 8px; }
+    .status-bar { display: flex; align-items: center; gap: 12px; font-size: 12px; }
+    .badge { padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 11px; }
+    .badge-online { background: rgba(22,163,74,0.2); color: #86efac; }
+    .badge-offline { background: rgba(217,119,6,0.25); color: #fcd34d; }
+
+    nav.tabs {
+      background: #fff; border-bottom: 1px solid var(--border); padding: 0 24px;
+      display: flex; gap: 4px;
+    }
+    nav.tabs button {
+      background: none; border: none; padding: 14px 18px; font-size: 13px; font-weight: 600;
+      color: var(--muted); cursor: pointer; border-bottom: 3px solid transparent;
+    }
+    nav.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    main { padding: 20px 24px; max-width: 1440px; width: 100%; margin: 0 auto; }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+    .kpi { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+    .kpi .label { font-size: 11px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+    .kpi .val { font-size: 24px; font-weight: 700; color: var(--primary); margin-top: 4px; }
+
+    .toolbar {
+      background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 14px;
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px;
+    }
+    .toolbar .f { display: flex; flex-direction: column; gap: 4px; min-width: 150px; }
+    .toolbar label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; }
+    .toolbar input, .toolbar select {
+      padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px;
+    }
+
+    .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      background: #f8fafc; text-align: left; padding: 10px 12px; font-size: 11px;
+      text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    td { padding: 9px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    tr:hover td { background: #f8fafc; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+    .pill-ok { background: #dcfce7; color: #166534; }
+    .pill-warn { background: #fef3c7; color: #92400e; }
+    .pill-err { background: #fee2e2; color: #991b1b; }
+
+    /* Cabeçalho e rodapé exclusivos de impressão */
+    .print-only { display: none; }
+    @media print {
+      body { background: #fff; }
+      header, nav.tabs, .toolbar, .no-print { display: none !important; }
+      main { padding: 0; max-width: 100%; }
+      .card, .kpi { border: none; box-shadow: none; }
+      .kpi-grid { margin-bottom: 10px; }
+      .kpi { border: 1px solid #cbd5e1; padding: 8px; }
+      .print-only { display: block; }
+      .print-header {
+        border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 14px;
+        display: flex; justify-content: space-between; align-items: flex-end;
+      }
+      .print-sign {
+        margin-top: 36px; display: flex; justify-content: space-between; gap: 40px;
+      }
+      .print-sign div { flex: 1; border-top: 1px solid #0f172a; padding-top: 6px; font-size: 12px; text-align: center; }
+      table { font-size: 11px; }
+      th, td { padding: 6px 8px; border: 1px solid #cbd5e1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TELA DE LOGIN -->
+  <div id="loginScreen">
+    <div class="login-card">
+      <h2>Cristini P&M · Ufficio</h2>
+      <p>Console Desktop per conferenza dati e stampa (Online & Offline)</p>
+      <div class="field">
+        <label>Operatore / Responsabile</label>
+        <input id="loginName" type="text" placeholder="Nome esatto da CONFIGURAZIONE">
+      </div>
+      <div class="field">
+        <label>PIN (4 cifre)</label>
+        <input id="loginPin" type="password" inputmode="numeric" placeholder="••••">
+      </div>
+      <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="doLogin()">Accedi alla Console</button>
+      <p id="loginMsg" style="color:#dc2626; margin-top:12px; font-size:12px;"></p>
+    </div>
+  </div>
+
+  <!-- CONSOLE PRINCIPAL -->
+  <div id="appScreen">
+    <header>
+      <div class="brand">CRISTINI P&M <span>Console Ufficio PC</span></div>
+      <div class="status-bar">
+        <span id="netBadge" class="badge badge-online">🟢 Online</span>
+        <span id="syncInfo" style="color:#cbd5e1;">Nessuna sincronizzazione</span>
+        <button class="btn btn-primary" onclick="syncData()">🔄 Sincronizza</button>
+        <button class="btn btn-outline" onclick="window.print()">🖨️ Stampa / PDF</button>
+        <button class="btn btn-outline" onclick="logout()">Esci</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="active" onclick="switchTab('rapporti', this)">📋 Rapporto Giornaliero</button>
+      <button onclick="switchTab('mensile', this)">📊 Riepilogo Mensile</button>
+      <button onclick="switchTab('assenze', this)">🏖️ Richieste Assenze</button>
+      <button onclick="switchTab('ddt', this)">📦 DDT & Foto Cantiere</button>
+    </nav>
+
+    <main>
+      <!-- Cabeçalho que só aparece no papel/PDF -->
+      <div class="print-only print-header">
+        <div>
+          <h2 style="margin:0;">CRISTINI P&M — Report Ufficio</h2>
+          <div id="printSubtitle" style="font-size:12px; color:#475569; margin-top:4px;"></div>
+        </div>
+        <div id="printDate" style="font-size:11px; color:#475569;"></div>
+      </div>
+
+      <!-- TAB 1: RAPPORTO GIORNALIERO -->
+      <section id="tab-rapporti">
+        <div class="toolbar">
+          <div class="f"><label>Dal</label><input type="date" id="fDal" onchange="renderRapporti()"></div>
+          <div class="f"><label>Al</label><input type="date" id="fAl" onchange="renderRapporti()"></div>
+          <div class="f"><label>Dipendente</label><select id="fDip" onchange="renderRapporti()"><option value="">Tutti</option></select></div>
+          <div class="f"><label>Cantiere</label><select id="fCant" onchange="renderRapporti()"><option value="">Tutti</option></select></div>
+          <div class="f"><label>Presenza</label><select id="fPres" onchange="renderRapporti()"><option value="">Tutte</option><option>Presente</option><option>Assente</option><option>Ferie</option><option>Malattia</option></select></div>
+          <button class="btn btn-outline" onclick="resetFilters()">Pulisci Filtri</button>
+        </div>
+
+        <div class="kpi-grid">
+          <div class="kpi"><div class="label">Registrazioni</div><div class="val" id="kCount">0</div></div>
+          <div class="kpi"><div class="label">Ore Totali</div><div class="val" id="kHours">0.0 h</div></div>
+          <div class="kpi"><div class="label">Operai nel filtro</div><div class="val" id="kDip">0</div></div>
+          <div class="kpi"><div class="label">Cantieri nel filtro</div><div class="val" id="kCant">0</div></div>
+        </div>
+
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th><th>Dipendente</th><th>Presenza</th><th>Cantiere</th>
+                <th>Settore</th><th>Orario</th><th class="num">Pausa</th><th class="num">Ore</th>
+                <th>Veicolo</th><th>Descrizione Lavoro</th>
+              </tr>
+            </thead>
+            <tbody id="tbRapporti"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 2: RIEPILOGO MENSILE -->
+      <section id="tab-mensile" style="display:none;">
+        <div class="toolbar">
+          <div class="f"><label>Mese di Riferimento</label><input type="month" id="fMese" onchange="renderMensile()"></div>
+        </div>
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Dipendente</th><th class="num">Giorni Presente</th><th class="num">Ore Ordinarie</th>
+                <th class="num">Straordinari (>8h)</th><th class="num">Ore Totali</th><th>Cantieri Principali</th>
+              </tr>
+            </thead>
+            <tbody id="tbMensile"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 3: ASSENZE -->
+      <section id="tab-assenze" style="display:none;">
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Dipendente</th><th>Tipo</th><th>Periodo</th>
+                <th>Note</th><th>Stato</th><th>Note Ufficio</th><th class="no-print">Allegato</th>
+              </tr>
+            </thead>
+            <tbody id="tbAssenze"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- TAB 4: DDT -->
+      <section id="tab-ddt" style="display:none;">
+        <div class="card table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Data Doc</th><th>Dipendente</th><th>Cantiere</th>
+                <th>Tipo</th><th>Note</th><th class="no-print">Foto / File</th>
+              </tr>
+            </thead>
+            <tbody id="tbDdt"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="print-only print-sign">
+        <div>Firma Responsabile Ufficio</div>
+        <div>Data e Timbro Cristini P&M</div>
+      </div>
+    </main>
+  </div>
+
+<script>
+  // >>> COLE AQUI A MESMA URL DO SEU APPS SCRIPT <<<
+  const API_URL = "https://script.google.com/macros/s/AKfycbwxr1ZivVYCFzTaOZ-6zuGYasel5dmjlh-4LSSC7d6o7ObQPnvZLcMoKjJlEJNnOIBd/exec";
+
+  let DB_DATA = { rapporti: [], assenze: [], ddt: [], syncedAt: null };
+  let CURRENT_TAB = 'rapporti';
+
+  // ==================== INDEXEDDB (BANCO OFFLINE DO PC) ====================
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open('CristiniUfficioDB', 1);
+      req.onupgradeneeded = e => e.target.result.createObjectStore('store');
+      req.onsuccess = e => resolve(e.target.result);
+      req.onerror = e => reject(e);
+    });
+  }
+  async function saveLocalDB(data) {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('store', 'readwrite');
+      tx.objectStore('store').put(data, 'snapshot');
+      tx.oncomplete = () => res();
+      tx.onerror = e => rej(e);
+    });
+  }
+  async function loadLocalDB() {
+    const db = await openDB();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('store', 'readonly');
+      const req = tx.objectStore('store').get('snapshot');
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = e => rej(e);
+    });
+  }
+
+  // ==================== LOGIN & SESSÃO ====================
+  async function doLogin() {
+    const nome = document.getElementById('loginName').value.trim();
+    const pin = document.getElementById('loginPin').value.trim();
+    const msg = document.getElementById('loginMsg');
+    if (!nome || !pin) { msg.textContent = 'Inserisci nome e PIN.'; return; }
+
+    localStorage.setItem('cristiniUfficioAuth', JSON.stringify({ nome, pin }));
+    msg.textContent = 'Connessione in corso...';
+    const ok = await syncData();
+    if (ok) {
+      startApp();
+    } else {
+      const cached = await loadLocalDB();
+      if (cached) {
+        DB_DATA = cached;
+        startApp();
+      } else {
+        msg.textContent = 'Credenziali errate o nessuna connessione per il primo accesso.';
+      }
+    }
+  }
+
+  function logout() {
+    localStorage.removeItem('cristiniUfficioAuth');
+    location.reload();
+  }
+
+  async function startApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'flex';
+    const now = new Date();
+    document.getElementById('fMese').value = now.toISOString().slice(0, 7);
+    populateFilters();
+    renderAll();
+    updateNetBadge();
+  }
+
+  // ==================== SINCRONIZAÇÃO ====================
+  async function syncData() {
+    const auth = JSON.parse(localStorage.getItem('cristiniUfficioAuth') || 'null');
+    if (!auth) return false;
+    document.getElementById('syncInfo').textContent = 'Sincronizzazione...';
+    try {
+      const url = `${API_URL}?action=office_sync&operaio=${encodeURIComponent(auth.nome)}&pin=${encodeURIComponent(auth.pin)}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.status !== 'ok') {
+        document.getElementById('syncInfo').textContent = 'Errore PIN / Accesso negato';
+        return false;
+      }
+      DB_DATA = json;
+      await saveLocalDB(DB_DATA);
+      populateFilters();
+      renderAll();
+      updateSyncLabel();
+      return true;
+    } catch (e) {
+      updateNetBadge();
+      updateSyncLabel();
+      return false;
+    }
+  }
+
+  function updateNetBadge() {
+    const el = document.getElementById('netBadge');
+    if (navigator.onLine) {
+      el.className = 'badge badge-online'; el.textContent = '🟢 Online';
+    } else {
+      el.className = 'badge badge-offline'; el.textContent = '🟠 Offline (Dati Locali)';
+    }
+  }
+  function updateSyncLabel() {
+    const el = document.getElementById('syncInfo');
+    if (!DB_DATA.syncedAt) { el.textContent = 'Mai sincronizzato'; return; }
+    const d = new Date(DB_DATA.syncedAt);
+    el.textContent = 'Ultimo agg.: ' + d.toLocaleDateString('it-IT') + ' ' + d.toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'});
+  }
+  window.addEventListener('online', updateNetBadge);
+  window.addEventListener('offline', updateNetBadge);
+
+  // ==================== FILTROS E RENDERIZAÇÃO ====================
+  function populateFilters() {
+    const dips = [...new Set(DB_DATA.rapporti.map(r => r.dipendente))].sort();
+    const cants = [...new Set(DB_DATA.rapporti.map(r => r.cantiere).filter(Boolean))].sort();
+    const fDip = document.getElementById('fDip');
+    const fCant = document.getElementById('fCant');
+    const curD = fDip.value, curC = fCant.value;
+    fDip.innerHTML = '<option value="">Tutti</option>' + dips.map(d => `<option>${d}</option>`).join('');
+    fCant.innerHTML = '<option value="">Tutti</option>' + cants.map(c => `<option>${c}</option>`).join('');
+    fDip.value = curD; fCant.value = curC;
+  }
+
+  function resetFilters() {
+    ['fDal','fAl','fDip','fCant','fPres'].forEach(id => document.getElementById(id).value = '');
+    renderRapporti();
+  }
+
+  function calcOre(r) {
+    if (r.ore && !isNaN(r.ore)) return Number(r.ore);
+    if (!r.inizio || !r.fine) return 0;
+    const [h1, m1] = r.inizio.split(':').map(Number);
+    const [h2, m2] = r.fine.split(':').map(Number);
+    const diff = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60 - (Number(r.pausa) || 0);
+    return diff > 0 ? diff : 0;
+  }
+
+  function renderRapporti() {
+    const dal = document.getElementById('fDal').value;
+    const al = document.getElementById('fAl').value;
+    const dip = document.getElementById('fDip').value;
+    const cant = document.getElementById('fCant').value;
+    const pres = document.getElementById('fPres').value;
+
+    const filtered = DB_DATA.rapporti.filter(r => {
+      if (dal && r.data < dal) return false;
+      if (al && r.data > al) return false;
+      if (dip && r.dipendente !== dip) return false;
+      if (cant && r.cantiere !== cant) return false;
+      if (pres && r.presenza !== pres) return false;
+      return true;
+    }).sort((a,b) => b.data.localeCompare(a.data));
+
+    let totalOre = 0;
+    const dipSet = new Set(), cantSet = new Set();
+    document.getElementById('tbRapporti').innerHTML = filtered.map(r => {
+      const ore = calcOre(r);
+      totalOre += ore;
+      dipSet.add(r.dipendente);
+      if (r.cantiere) cantSet.add(r.cantiere);
+      return `<tr>
+        <td>${r.data}</td><td><strong>${r.dipendente}</strong></td><td>${r.presenza}</td>
+        <td>${r.cantiere}</td><td>${r.settore}</td><td>${r.inizio} - ${r.fine}</td>
+        <td class="num">${r.pausa}</td><td class="num"><strong>${ore.toFixed(2)}</strong></td>
+        <td>${r.veicolo}</td><td>${r.descrizione}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="10" style="text-align:center;color:#64748b;padding:24px;">Nessun dato trovato</td></tr>';
+
+    document.getElementById('kCount').textContent = filtered.length;
+    document.getElementById('kHours').textContent = totalOre.toFixed(1) + ' h';
+    document.getElementById('kDip').textContent = dipSet.size;
+    document.getElementById('kCant').textContent = cantSet.size;
+    updatePrintMeta(`Rapporto Giornaliero ${dal || ''} ${al ? '→ ' + al : ''} ${dip ? '· ' + dip : ''} ${cant ? '· ' + cant : ''}`);
+  }
+
+  function renderMensile() {
+    const mese = document.getElementById('fMese').value;
+    const map = {};
+    DB_DATA.rapporti.forEach(r => {
+      if (mese && !r.data.startsWith(mese)) return;
+      if (!map[r.dipendente]) map[r.dipendente] = { gg: 0, ord: 0, str: 0, tot: 0, cants: new Set() };
+      const ore = calcOre(r);
+      if (r.presenza === 'Presente') map[r.dipendente].gg++;
+      map[r.dipendente].ord += Math.min(8, ore);
+      map[r.dipendente].str += Math.max(0, ore - 8);
+      map[r.dipendente].tot += ore;
+      if (r.cantiere) map[r.dipendente].cants.add(r.cantiere);
+    });
+
+    const rows = Object.keys(map).sort().map(d => {
+      const m = map[d];
+      return `<tr>
+        <td><strong>${d}</strong></td><td class="num">${m.gg}</td>
+        <td class="num">${m.ord.toFixed(2)}</td><td class="num">${m.str.toFixed(2)}</td>
+        <td class="num"><strong>${m.tot.toFixed(2)}</strong></td>
+        <td>${[...m.cants].join(', ')}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('tbMensile').innerHTML = rows || '<tr><td colspan="6" style="text-align:center;padding:24px;color:#64748b;">Nessun dato per questo mese</td></tr>';
+    updatePrintMeta('Riepilogo Mensile · ' + mese);
+  }
+
+  function renderAssenze() {
+    document.getElementById('tbAssenze').innerHTML = DB_DATA.assenze.slice().reverse().map(a => {
+      const cls = a.stato === 'Approvato' ? 'pill-ok' : (a.stato === 'Rifiutato' ? 'pill-err' : 'pill-warn');
+      const link = a.allegato && a.allegato.startsWith('http') ? `<a href="${a.allegato}" target="_blank">Apri</a>` : '-';
+      return `<tr>
+        <td>${a.id}</td><td><strong>${a.dipendente}</strong></td><td>${a.tipo}</td>
+        <td>${a.inizio} → ${a.fine}</td><td>${a.note}</td>
+        <td><span class="pill ${cls}">${a.stato}</span></td><td>${a.noteUfficio}</td>
+        <td class="no-print">${link}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderDdt() {
+    document.getElementById('tbDdt').innerHTML = DB_DATA.ddt.slice().reverse().map(d => {
+      const link = d.allegato && d.allegato.startsWith('http') ? `<a href="${d.allegato}" target="_blank">Apri Foto</a>` : '-';
+      return `<tr>
+        <td>${d.id}</td><td>${d.dataDoc}</td><td><strong>${d.dipendente}</strong></td>
+        <td>${d.cantiere}</td><td>${d.tipo}</td><td>${d.note}</td>
+        <td class="no-print">${link}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderAll() { renderRapporti(); renderMensile(); renderAssenze(); renderDdt(); }
+
+  function switchTab(name, btn) {
+    CURRENT_TAB = name;
+    ['rapporti','mensile','assenze','ddt'].forEach(t => {
+      document.getElementById('tab-' + t).style.display = (t === name) ? 'block' : 'none';
+    });
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    if (name === 'mensile') renderMensile();
+    if (name === 'rapporti') renderRapporti();
+  }
+
+  function updatePrintMeta(sub) {
+    document.getElementById('printSubtitle').textContent = sub;
+    document.getElementById('printDate').textContent = 'Stampato il: ' + new Date().toLocaleString('it-IT');
+  }
+
+  // ==================== INICIALIZAÇÃO AUTOMÁTICA OFFLINE ====================
+  (async function init() {
+    const auth = localStorage.getItem('cristiniUfficioAuth');
+    const cached = await loadLocalDB();
+    if (auth && cached) {
+      DB_DATA = cached;
+      startApp();
+      updateSyncLabel();
+      if (navigator.onLine) syncData(); // Atualiza em segundo plano se tiver internet
+    }
+  })();
+</script>
+</body>
+</html>
