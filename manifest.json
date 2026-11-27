@@ -1,10 +1,12 @@
 {
-  "name": "Cristini P&M - App Cantiere",
-  "short_name": "Cristini App",
-  "start_url": "./index.html",
+  "id": "/Cristinipem/ufficio.html",
+  "name": "Cristini P&M · Gestionale Ufficio",
+  "short_name": "Cristini Ufficio",
+  "start_url": "/Cristinipem/ufficio.html",
+  "scope": "/Cristinipem/ufficio.html",
   "display": "standalone",
-  "background_color": "#f1f5f9",
-  "theme_color": "#1e3a8a",
+  "background_color": "#1B1F24",
+  "theme_color": "#0095D9",
   "icons": [
     {
       "src": "icon-512.png",
