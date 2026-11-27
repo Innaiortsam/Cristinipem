@@ -232,7 +232,10 @@
       .workspace { margin-left: 0 !important; }
       main.content { padding: 0 !important; max-width: 100% !important; }
       .table-wrap { overflow: visible !important; }
-      .card, .kpi { box-shadow: none !important; border: 1px solid #CBD5E1 !important; break-inside: avoid; }
+      .card { box-shadow: none !important; border: none !important; break-inside: auto !important; page-break-inside: auto !important; }
+      .kpi { box-shadow: none !important; border: 1px solid #CBD5E1 !important; break-inside: avoid; }
+       thead { display: table-header-group; }
+       tr { break-inside: avoid; page-break-inside: avoid; }
       .kpi-grid { gap: 8px; margin-bottom: 10px; }
       .kpi { padding: 8px 10px; }
       .kpi .k-val { font-size: 16px; }
