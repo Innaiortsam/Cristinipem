@@ -226,27 +226,33 @@
     /* ==================== OFFICIAL PRINT HEADER (A4) ==================== */
     .print-only { display: none; }
     @media print {
-      @page { margin: 12mm; }
-      body { background: #fff; font-size: 11px; }
+      @page { size: A4 landscape; margin: 7mm; }
+      body { background: #fff; font-size: 10px; }
       aside.sidebar, header.topbar, .toolbar, .no-print, #tab-mio { display: none !important; }
       .workspace { margin-left: 0 !important; }
       main.content { padding: 0 !important; max-width: 100% !important; }
+      .table-wrap { overflow: visible !important; }
       .card, .kpi { box-shadow: none !important; border: 1px solid #CBD5E1 !important; break-inside: avoid; }
-      .kpi-grid { gap: 8px; margin-bottom: 12px; }
-      .kpi { padding: 10px 12px; }
-      .kpi .k-val { font-size: 18px; }
+      .kpi-grid { gap: 8px; margin-bottom: 10px; }
+      .kpi { padding: 8px 10px; }
+      .kpi .k-val { font-size: 16px; }
       .print-only { display: block !important; }
-      .letterhead { margin-bottom: 16px; }
-      .lh-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-      .lh-tagline { text-align: right; font-size: 11px; font-weight: 700; font-style: italic; color: #3D4145; line-height: 1.35; }
-      .lh-bar { background: #4D5156; color: #fff; font-size: 9.5px; font-weight: 600; padding: 4px 10px; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .lh-contacts { text-align: center; font-size: 9.5px; color: #3D4145; padding: 4px 0 8px; border-bottom: 2px solid #0095D9; }
-      .lh-meta { display: flex; justify-content: space-between; font-size: 11px; color: #475569; margin-top: 8px; font-weight: 600; }
-      table { font-size: 10px; }
-      th, td { padding: 5px 6px; border: 1px solid #CBD5E1; }
-      .matrix-table th, .matrix-table td { padding: 3px 2px; font-size: 8.5px; }
-      .print-sign { margin-top: 28px; display: flex; justify-content: space-between; gap: 48px; }
-      .print-sign div { flex: 1; border-top: 1px solid #3D4145; padding-top: 6px; text-align: center; font-size: 10.5px; color: #3D4145; }
+      .letterhead { margin-bottom: 12px; }
+      .lh-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+      .lh-tagline { text-align: right; font-size: 10px; font-weight: 700; font-style: italic; color: #3D4145; line-height: 1.3; }
+      .lh-bar { background: #4D5156; color: #fff; font-size: 9px; font-weight: 600; padding: 3px 8px; text-align: center; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .lh-contacts { text-align: center; font-size: 9px; color: #3D4145; padding: 3px 0 6px; border-bottom: 2px solid #0095D9; }
+      .lh-meta { display: flex; justify-content: space-between; font-size: 10px; color: #475569; margin-top: 6px; font-weight: 600; }
+      table { font-size: 9.5px; width: 100%; }
+      th, td { padding: 4px 5px; border: 1px solid #CBD5E1; }
+      .matrix-table { table-layout: fixed; width: 100% !important; }
+      .matrix-table th, .matrix-table td { padding: 2px 1px !important; font-size: 7.5px !important; text-align: center; }
+      .matrix-table th.sticky-col, .matrix-table td.sticky-col {
+        position: static !important; width: 105px !important; min-width: 105px !important; max-width: 105px !important;
+        text-align: left !important; padding: 2px 4px !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .print-sign { margin-top: 20px; display: flex; justify-content: space-between; gap: 48px; }
+      .print-sign div { flex: 1; border-top: 1px solid #3D4145; padding-top: 5px; text-align: center; font-size: 10px; color: #3D4145; }
     }
   </style>
 </head>
@@ -574,6 +580,14 @@
           <section id="tab-presenze" style="display:none;">
             <div class="toolbar no-print">
               <div class="f"><label>Mese di Riferimento</label><input type="month" id="pmMese" onchange="renderPresenzeMensile()"></div>
+              <div class="f">
+                <label>Gruppo Personale</label>
+                <select id="pmGruppo" onchange="renderPresenzeMensile()">
+                  <option value="">Tutti</option>
+                  <option value="operai">Solo Operai / Cantiere</option>
+                  <option value="ufficio">Solo Ufficio / Admin</option>
+                </select>
+              </div>
               <div style="font-size:12px; color:var(--muted); margin-left:auto;">
                 Legenda: <strong>Numero</strong> = Ore lavorate · <span class="badge b-warn">F</span> Ferie · <span class="badge b-err">M</span> Malattia · <span class="badge b-gray">A</span> Assente
               </div>
@@ -754,7 +768,9 @@
         rapporti: office.rapporti || [],
         assenze: office.assenze || [],
         ddt: office.ddt || [],
+        operai: init.operai || [],
         cantieri: (init.cantieri || []).map(c => c.nome),
+        cantieriInfo: init.cantieri || [],
         settori: init.settori || [],
         veicoli: init.veicoli || [],
         syncedAt: office.syncedAt || new Date().toISOString()
@@ -878,6 +894,28 @@
     const [h2, m2] = r.fine.split(':').map(Number);
     const diff = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60 - (Number(r.pausa) || 0);
     return diff > 0 ? diff : 0;
+  }
+  function parseHoursVal(val) {
+    if (!val) return 0;
+    const s = String(val).trim().replace(',', '.');
+    if (s.includes(':')) {
+      const [h, m] = s.split(':').map(Number);
+      return (h || 0) + ((m || 0) / 60);
+    }
+    return Number(s) || 0;
+  }
+
+  function calcTrasferta(r) {
+    const mov = (r.trasferta || '').trim().toLowerCase();
+    if (!mov || mov === 'nessuno') return 0;
+    const cInfo = (DB_DATA.cantieriInfo || []).find(c => c.nome === r.cantiere);
+    if (!cInfo) return 0;
+    const andH = parseHoursVal(cInfo.andataH);
+    const ritH = parseHoursVal(cInfo.ritornoH);
+    if (mov.includes('andata') && mov.includes('ritorno')) return andH + ritH;
+    if (mov.includes('andata')) return andH;
+    if (mov.includes('ritorno')) return ritH;
+    return 0;
   }
 
   function fillSelect(id, items, firstLabel) {
@@ -1082,12 +1120,28 @@
 
   function renderPresenzeMensile() {
     const mese = document.getElementById('pmMese').value;
+    const gruppo = document.getElementById('pmGruppo').value;
     if (!mese) return;
     const [year, month] = mese.split('-').map(Number);
     const daysInMonth = new Date(year, month, 0).getDate();
 
+    const ruoloByNome = {};
+    (DB_DATA.operai || []).forEach(o => { ruoloByNome[o.nome] = (o.ruolo || 'Operaio').trim(); });
+
     const rows = DB_DATA.rapporti.filter(r => r.data.startsWith(mese));
-    const dips = [...new Set(DB_DATA.rapporti.map(r => r.dipendente).filter(Boolean))].sort();
+    const allDips = [...new Set([
+      ...(DB_DATA.operai || []).map(o => o.nome),
+      ...DB_DATA.rapporti.map(r => r.dipendente)
+    ].filter(Boolean))].sort();
+
+    const dips = allDips.filter(nome => {
+      const r = ruoloByNome[nome] || 'Operaio';
+      const isUfficio = (r === 'Ufficio' || r === 'Admin');
+      if (gruppo === 'ufficio') return isUfficio;
+      if (gruppo === 'operai') return !isUfficio;
+      return true;
+    });
+
     const map = {};
     rows.forEach(r => {
       const day = Number(r.data.slice(8, 10));
@@ -1101,12 +1155,12 @@
       const wk = (dow === 0 || dow === 6) ? 'wknd' : '';
       thead += `<th class="${wk}">${d}</th>`;
     }
-    thead += '<th>GG</th><th>Ord</th><th>Str</th><th>Tot</th></tr></thead>';
+    thead += '<th>GG</th><th>Ord</th><th>Str</th><th>Trasf</th><th>Tot</th></tr></thead>';
 
     let tbody = '<tbody>';
     dips.forEach(dip => {
       const dMap = map[dip] || {};
-      let gg = 0, ord = 0, str = 0, tot = 0;
+      let gg = 0, ord = 0, str = 0, trasf = 0, tot = 0;
       tbody += `<tr><td class="sticky-col">${dip}</td>`;
       for (let d = 1; d <= daysInMonth; d++) {
         const dow = new Date(year, month - 1, d).getDay();
@@ -1116,8 +1170,11 @@
           tbody += `<td class="${wk}">-</td>`;
         } else if (rec.presenza === 'Presente') {
           const o = calcOre(rec);
-          gg++; ord += Math.min(8, o); str += Math.max(0, o - 8); tot += o;
-          tbody += `<td class="cell-h">${Number.isInteger(o) ? o : o.toFixed(1)}</td>`;
+          const t = calcTrasferta(rec);
+          gg++; ord += Math.min(8, o); str += Math.max(0, o - 8); trasf += t; tot += o;
+          const hTxt = Number.isInteger(o) ? o : o.toFixed(1);
+          const tTxt = t > 0 ? `<div style="font-size:8px;color:#0095D9;line-height:1;">+${Number.isInteger(t) ? t : t.toFixed(1)}t</div>` : '';
+          tbody += `<td class="cell-h">${hTxt}${tTxt}</td>`;
         } else if (rec.presenza === 'Ferie') {
           tbody += `<td class="cell-f">F</td>`;
         } else if (rec.presenza === 'Malattia') {
@@ -1126,7 +1183,7 @@
           tbody += `<td class="cell-a">A</td>`;
         }
       }
-      tbody += `<td><strong>${gg}</strong></td><td>${ord.toFixed(1)}</td><td>${str.toFixed(1)}</td><td><strong>${tot.toFixed(1)}</strong></td></tr>`;
+      tbody += `<td><strong>${gg}</strong></td><td>${ord.toFixed(1)}</td><td>${str.toFixed(1)}</td><td style="color:#0077B3;font-weight:700;">${trasf.toFixed(1)}</td><td><strong>${tot.toFixed(1)}</strong></td></tr>`;
     });
     tbody += '</tbody>';
 
